@@ -66,6 +66,11 @@ The first implementation will define:
 - Replacing the underlying source material.
 - Hiding uncertainty or presenting machine output as independently verified fact.
 
+## Design specifications
+
+- [Review Brief content model](docs/specs/review-brief-content-model.md)
+- [Review Brief JSON Schema](docs/specs/review-brief.schema.json)
+
 ## Repository status
 
-This repository is in the initial design phase. Implementation details and generation instructions will be added as the project develops.
+This repository is in the design/specification phase. Implementation details and generation instructions are tracked in GitHub issues and will be added as the design route is resolved.
