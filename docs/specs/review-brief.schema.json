@@ -95,15 +95,21 @@
     },
     "indexEntry": {
       "type": "object",
-      "required": ["id", "target", "category", "priority", "label"],
+      "required": ["id", "target", "category", "priority", "label", "significance", "scope"],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
         "target": { "type": "string", "minLength": 1 },
         "category": {
           "enum": ["finding", "verification", "risk", "uncertainty", "background", "direct_evidence"]
         },
-        "priority": { "type": ["number", "string"] },
+        "priority": {
+          "enum": ["critical", "high", "medium", "low"]
+        },
         "label": { "type": "string", "minLength": 1 },
+        "significance": { "type": "string", "minLength": 1 },
+        "scope": {
+          "enum": ["change", "repository", "shared"]
+        },
         "review_instruction": { "type": "string" }
       },
       "additionalProperties": true

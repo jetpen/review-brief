@@ -71,11 +71,13 @@ Each `index` entry is a prioritized pointer with:
 - `id`
 - `target`: an object ID or source link
 - `category`: one of `finding`, `verification`, `risk`, `uncertainty`, `background`, or `direct_evidence`
-- `priority`: attention priority based on importance, impact, and risk relevant to human review
+- `priority`: one of `critical`, `high`, `medium`, or `low`, representing attention priority based on importance, impact, and risk relevant to human review
 - `label`
+- `significance`: a one-sentence explanation of why the item matters
+- `scope`: one of `change`, `repository`, or `shared`
 - optional `review_instruction`
 
-Index priority controls reading order. It is not severity, truth, approval urgency, or governance state.
+Index priority controls reading order. It is not severity, truth, approval urgency, or governance state. The renderer uses the fixed descending order `critical`, `high`, `medium`, `low` and deterministic category and identifier tie-breakers defined by the information-architecture specification.
 
 ## Sources and links
 
@@ -147,4 +149,6 @@ Material visual assertions must reference the relevant source, claim, or evidenc
 
 ## Rendering boundary
 
-The renderer produces a self-contained local HTML/CSS/JavaScript artifact. It should preserve source links, show unavailable links honestly, render known object types, and provide generic presentation for unknown optional object kinds without silently reinterpreting their semantics.
+The renderer produces a self-contained local HTML/CSS/JavaScript artifact. Its human-facing hierarchy, progressive-detail rules, priority ordering, scope badges, stable anchors, empty states, and unresolved-reference behavior are defined in the [information-architecture specification](review-brief-information-architecture.md).
+
+The renderer should preserve source links, show unavailable links honestly, render known object types, and provide generic presentation for unknown optional object kinds without silently reinterpreting their semantics.

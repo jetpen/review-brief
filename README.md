@@ -70,6 +70,7 @@ The first implementation will define:
 
 - [Review Brief content model](docs/specs/review-brief-content-model.md)
 - [Review Brief JSON Schema](docs/specs/review-brief.schema.json)
+- [Review Brief information architecture](docs/specs/review-brief-information-architecture.md)
 
 ## Repository status
 
