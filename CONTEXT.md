@@ -43,3 +43,27 @@ _Avoid_: Group when referring to a semantic boundary
 **Semantic role**:
 A family-specific meaning assigned during validation and normalization rather than inferred solely from Mermaid syntax or visual shape.
 _Avoid_: Shape meaning
+
+**Logical architecture**:
+A structural view of systems, components, services, interfaces, data stores, dependencies, and logical boundaries without deployment topology or runtime interaction sequencing.
+_Avoid_: Deployment architecture, sequence diagram
+
+**Relationship role**:
+A controlled semantic meaning assigned to a logical-architecture edge, such as `calls`, `depends_on`, `implements`, `exposes`, `reads`, or `writes`.
+_Avoid_: Edge meaning
+
+**Style profile**:
+A named, versioned collection of typography, color, contrast, line-width, layout, and related rendering parameters.
+_Avoid_: Theme when referring to a rendering contract
+
+**Qualitative review**:
+Human evaluation of a rendered PNG for non-overlap, unobscured elements, visible labels, readability, aspect ratio, and color/contrast acceptability.
+_Avoid_: Pixel comparison
+
+**Best-effort rendering**:
+Rendering that produces the most acceptable valid artifact possible for an oversized or difficult diagram while recording limitations or warnings.
+_Avoid_: Failed rendering when a valid artifact is produced
+
+**Refinement loop**:
+An iterative cycle in which human feedback or agent-assisted changes to retained intermediates trigger re-rendering until the output is acceptable.
+_Avoid_: Approval workflow
