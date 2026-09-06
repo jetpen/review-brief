@@ -1,0 +1,66 @@
+digraph review_brief_rendering_prototype {
+  graph [
+    rankdir=LR,
+    bgcolor="#ffffff",
+    pad="0.35",
+    nodesep="0.65",
+    ranksep="0.8",
+    splines=polyline,
+    outputorder=edgesfirst,
+    compound=true,
+    fontname="DejaVu Sans",
+    fontsize=16,
+    labelloc=t,
+    label="Review Brief rendering prototype"
+  ];
+  node [
+    shape=box,
+    style="rounded,filled",
+    fontname="DejaVu Sans",
+    fontsize=11,
+    margin="0.16,0.10",
+    color="#334155",
+    fontcolor="#0f172a",
+    fillcolor="#e2e8f0",
+    penwidth=1.4
+  ];
+  edge [
+    fontname="DejaVu Sans",
+    fontsize=10,
+    color="#475569",
+    fontcolor="#0f172a",
+    penwidth=1.4,
+    arrowsize=0.8
+  ];
+
+  subgraph cluster_input {
+    label="Source and semantic model";
+    color="#94a3b8";
+    style="rounded";
+    fontname="DejaVu Sans";
+    fontsize=12;
+    source [label="Mermaid source\nsource.mmd", fillcolor="#dbeafe"];
+    ir [label="Semantic IR\nir.json", fillcolor="#dbeafe"];
+  }
+
+  subgraph cluster_render {
+    label="Deterministic rendering";
+    color="#94a3b8";
+    style="rounded";
+    fontname="DejaVu Sans";
+    fontsize=12;
+    dot [label="Graphviz DOT\ndiagram.dot", fillcolor="#dcfce7"];
+    svg [label="Inspectable SVG\ndiagram.svg", fillcolor="#dcfce7"];
+  }
+
+  png [label="Final PNG\ndiagram.png", shape=note, fillcolor="#fef3c7"];
+  manifest [label="Manifest\nmanifest.json", shape=folder, fillcolor="#fce7f3"];
+
+  source -> ir [label="parse + validate"];
+  ir -> dot [label="serialize"];
+  dot -> svg [label="dot -Tsvg"];
+  svg -> png [label="PNG conversion"];
+  ir -> manifest [style=dashed, label="semantic metadata"];
+  svg -> manifest [style=dashed, label="image metadata"];
+  png -> manifest [style=dashed, label="hash + dimensions"];
+}

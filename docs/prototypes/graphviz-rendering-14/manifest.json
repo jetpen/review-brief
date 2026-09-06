@@ -1,0 +1,56 @@
+{
+  "prototype": {
+    "issue": 14,
+    "question": "Define Graphviz rendering and qualitative PNG acceptance",
+    "status": "accepted_after_qualitative_review"
+  },
+  "pipeline": [
+    "Graphviz DOT",
+    "Graphviz SVG",
+    "PNG"
+  ],
+  "engine": {
+    "name": "dot",
+    "version_observed": "2.43.0 (0)",
+    "selection": "dot-only initial implementation"
+  },
+  "style_profile": {
+    "name": "review-brief-default",
+    "version": "prototype-1",
+    "background": "#ffffff",
+    "font_family": "DejaVu Sans",
+    "semantic_palette": {
+      "source": "#dbeafe",
+      "rendering": "#dcfce7",
+      "png": "#fef3c7",
+      "manifest": "#fce7f3"
+    },
+    "future_inputs": ["corporate_branding_guide", "style_guide"]
+  },
+  "acceptance": {
+    "automated": [
+      "DOT renders to SVG",
+      "DOT renders to PNG",
+      "PNG decodes",
+      "required labels are present in SVG",
+      "no literal backslash-n label escapes",
+      "dimensions are recorded",
+      "artifact hashes are recorded"
+    ],
+    "qualitative": [
+      "bounding boxes do not overlap except intentional containment",
+      "visual elements are unobscured",
+      "labels remain visible in the foreground",
+      "text is readable at intended display size",
+      "aspect ratio is acceptable",
+      "color and contrast are acceptable"
+    ],
+    "pixel_comparison": "not required"
+  },
+  "refinement": {
+    "human_feedback_loop": true,
+    "agent_assisted_intermediate_refinement": true,
+    "rerender_after_intermediate_changes": true
+  },
+  "oversized_diagrams": "best_effort_with_recorded_warning"
+}
