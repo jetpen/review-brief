@@ -23,6 +23,8 @@ class Edge:
     role: str = "relates_to"
     directed: bool = True
     style: str = "solid"
+    sequence_index: int | None = None
+    metadata: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -71,6 +73,8 @@ class DiagramIR:
                     "role": e.role,
                     "directed": e.directed,
                     "style": e.style,
+                    **({"sequence_index": e.sequence_index} if e.sequence_index is not None else {}),
+                    **({"metadata": e.metadata} if e.metadata else {}),
                 }
                 for e in self.edges
             ],
