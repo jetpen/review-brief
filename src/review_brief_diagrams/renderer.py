@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from .models import ArtifactBundle, Container, DiagramIR, Edge, Node
+from .styles import DEFAULT_STYLE, StyleProfile, contrast_ratio, resolve_style
 
 CONTRACT_VERSION = "1"
 EXIT_INVALID = 2
@@ -205,6 +206,15 @@ def parse_logical_flowchart(source: str) -> DiagramIR:
     return ir
 
 
+def _validate_style(style: StyleProfile) -> None:
+    if contrast_ratio(style.text_color, style.background) < 4.5:
+        raise RenderError("style profile fails text contrast validation", EXIT_INVALID, "style_validation", "validate")
+    if style.font_size < style.min_font_size or style.edge_font_size < style.min_font_size:
+        raise RenderError("style profile uses an unreadable font size", EXIT_INVALID, "style_validation", "validate")
+    if style.max_width <= 0 or style.max_height <= 0:
+        raise RenderError("style profile dimensions must be positive", EXIT_INVALID, "style_validation", "validate")
+
+
 def render_request(request_path: str | Path) -> ArtifactBundle:
     request_file = Path(request_path).resolve()
     try:
@@ -217,6 +227,8 @@ def render_request(request_path: str | Path) -> ArtifactBundle:
     try:
         source_bytes = source_path.read_bytes()
         ir = parse_logical_flowchart(source_bytes.decode("utf-8"))
+        style = resolve_style(request)
+        _validate_style(style)
     except RenderError:
         raise
     except (OSError, UnicodeDecodeError) as exc:
@@ -225,9 +237,9 @@ def render_request(request_path: str | Path) -> ArtifactBundle:
     try:
         (temp_path / "source.mmd").write_bytes(source_bytes)
         (temp_path / "ir.json").write_text(json.dumps(ir.as_dict(), indent=2) + "\n", encoding="utf-8")
-        (temp_path / "diagram.dot").write_text(to_dot(ir), encoding="utf-8")
+        (temp_path / "diagram.dot").write_text(to_dot(ir, style), encoding="utf-8")
         _run_graphviz(temp_path / "diagram.dot", temp_path / "diagram.svg", temp_path / "diagram.png")
-        (temp_path / "manifest.json").write_text(json.dumps(_make_manifest(temp_path, ir, source_bytes, family), indent=2) + "\n", encoding="utf-8")
+        (temp_path / "manifest.json").write_text(json.dumps(_make_manifest(temp_path, ir, source_bytes, family, style), indent=2) + "\n", encoding="utf-8")
         temp_path.rename(bundle_path)
     except RenderError:
         shutil.rmtree(temp_path, ignore_errors=True)
@@ -262,14 +274,14 @@ def _validate_request(request: Any, base_dir: Path) -> tuple[Path, Path, str]:
     return source_path, bundle_path, family
 
 
-def to_dot(ir: DiagramIR) -> str:
+def to_dot(ir: DiagramIR, style: StyleProfile = DEFAULT_STYLE) -> str:
     direction = {"TB": "TB", "TD": "TB", "BT": "BT", "RL": "RL", "LR": "LR"}[ir.direction]
     lines = [
         "digraph review_brief {",
         f'  rankdir="{direction}";',
-        '  graph [bgcolor="#ffffff", pad="0.35", nodesep="0.55", ranksep="0.8", splines="polyline", outputorder="edgesfirst"];',
-        '  node [fontname="DejaVu Sans", fontsize=11, style="rounded,filled", color="#334155", fontcolor="#0f172a", fillcolor="#dbeafe", margin="0.16,0.10"];',
-        '  edge [fontname="DejaVu Sans", fontsize=10, color="#475569", fontcolor="#0f172a", penwidth=1.4, arrowsize=0.8];',
+        f'  graph [bgcolor="{"transparent" if style.transparent else style.background}", pad="0.35", nodesep="0.55", ranksep="0.8", splines="polyline", outputorder="edgesfirst"];',
+        f'  node [fontname="{_dot_escape(style.font_family)}", fontsize={style.font_size}, style="rounded,filled", color="{style.node_border}", fontcolor="{style.text_color}", fillcolor="{style.node_fill}", margin="{style.node_margin}"];',
+        f'  edge [fontname="{_dot_escape(style.font_family)}", fontsize={style.edge_font_size}, color="{style.edge_color}", fontcolor="{style.text_color}", penwidth={style.line_width}, arrowsize={style.arrow_size}];',
     ]
     for container in ir.containers:
         lines.append(f'  subgraph "cluster_{_dot_escape(container.id)}" {{ label="{_dot_escape(container.label)}"; comment="role:{_dot_escape(container.role)}"; }}')
@@ -303,7 +315,7 @@ def _run_graphviz(dot_path: Path, svg_path: Path, png_path: Path) -> None:
         raise RenderError("Graphviz dot executable was not found", EXIT_GRAPHVIZ, "graphviz", "render") from exc
 
 
-def _make_manifest(temp_path: Path, ir: DiagramIR, source_bytes: bytes, family: str) -> dict[str, Any]:
+def _make_manifest(temp_path: Path, ir: DiagramIR, source_bytes: bytes, family: str, style: StyleProfile = DEFAULT_STYLE) -> dict[str, Any]:
     width, height = _png_dimensions(temp_path / "diagram.png")
     artifacts = []
     for name in _artifact_names(exclude_manifest=True):
@@ -315,7 +327,7 @@ def _make_manifest(temp_path: Path, ir: DiagramIR, source_bytes: bytes, family: 
         "generator": {"name": "review-brief-diagrams", "version": "0.1.0", "generated_at": datetime.now(timezone.utc).isoformat(), "run_id": str(uuid.uuid4())},
         "input": {"source_sha256": hashlib.sha256(source_bytes).hexdigest()},
         "diagram": {"family": family, "direction": ir.direction, "textual_description": f"Logical architecture flowchart containing {len(ir.nodes)} nodes and {len(ir.edges)} relationships.", "semantic_metadata": {"node_ids": [node.id for node in ir.nodes], "edge_ids": [edge.id for edge in ir.edges], "container_ids": [container.id for container in ir.containers]}},
-        "configuration": {"style_profile": {"name": "review-brief-default", "version": "1"}, "background": "#ffffff", "font_family": "DejaVu Sans", "dimensions": {"width": width, "height": height, "aspect_ratio": aspect_ratio}},
+        "configuration": {"style_profile": style.as_dict(), "dimensions": {"width": width, "height": height, "aspect_ratio": aspect_ratio}},
         "tools": {"graphviz": _graphviz_version(), "svg_to_png": {"name": "graphviz", "version": _graphviz_version()}},
         "artifacts": artifacts,
         "image": {"path": "diagram.png", "media_type": "image/png", "width": width, "height": height, "aspect_ratio": aspect_ratio},

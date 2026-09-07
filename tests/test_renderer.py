@@ -108,6 +108,31 @@ def test_deployment_role_fails_in_logical_family() -> None:
     assert exc_info.value.diagnostic["category"] == "semantic_validation"
 
 
+def test_style_profile_is_recorded_and_validated(tmp_path: Path) -> None:
+    request = write_request(tmp_path, VALID_MERMAID)
+    payload = json.loads(request.read_text())
+    payload["rendering"] = {"style_profile": {"name": "brand-blue", "version": "1", "node_fill": "#e0f2fe", "background": "#ffffff"}}
+    request.write_text(json.dumps(payload))
+
+    bundle = render_request(request)
+    manifest = json.loads((bundle.path / "manifest.json").read_text())
+    assert manifest["configuration"]["style_profile"]["name"] == "brand-blue"
+    assert manifest["configuration"]["style_profile"]["node_fill"] == "#e0f2fe"
+
+
+def test_low_contrast_style_profile_is_rejected(tmp_path: Path) -> None:
+    request = write_request(tmp_path, VALID_MERMAID)
+    payload = json.loads(request.read_text())
+    payload["rendering"] = {"style_profile": {"name": "bad", "version": "1", "text_color": "#aaaaaa", "background": "#ffffff"}}
+    request.write_text(json.dumps(payload))
+
+    with pytest.raises(RenderError) as exc_info:
+        render_request(request)
+
+    assert exc_info.value.exit_code == 2
+    assert exc_info.value.diagnostic["category"] == "style_validation"
+
+
 def test_cli_returns_structured_exit_code(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     from review_brief_diagrams import cli
 
