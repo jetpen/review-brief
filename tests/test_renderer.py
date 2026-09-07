@@ -66,8 +66,9 @@ def test_logical_roles_and_shapes_survive_dot_generation() -> None:
     dot = to_dot(ir)
 
     assert 'shape="cylinder"' in dot
-    assert 'comment="role:data_store"' in dot
-    assert 'comment="role:service"' in dot
+    assert 'shape="box"' in dot
+    assert ir.nodes[0].role == "service"
+    assert ir.nodes[1].role == "data_store"
 
 
 def test_empty_flowchart_is_semantic_failure() -> None:
@@ -133,6 +134,31 @@ def test_low_contrast_style_profile_is_rejected(tmp_path: Path) -> None:
     assert exc_info.value.diagnostic["category"] == "style_validation"
 
 
+def test_deployment_flowchart_renders_network_metadata(tmp_path: Path) -> None:
+    request = write_request(tmp_path, '''flowchart TB
+subgraph prod["[deployment] Production"]
+  api["[workload] API"] -->|[network_flow][HTTPS:443][ingress]| db["[database] Database"]
+end
+''')
+    payload = json.loads(request.read_text())
+    payload["diagram"]["family"] = "deployment"
+    request.write_text(json.dumps(payload))
+
+    bundle = render_request(request)
+    manifest = json.loads((bundle.path / "manifest.json").read_text())
+    ir = json.loads((bundle.path / "ir.json").read_text())
+    assert manifest["diagram"]["family"] == "deployment"
+    assert manifest["diagram"]["direction"] == "TB"
+    assert ir["containers"][0]["role"] == "deployment"
+    assert ir["edges"][0]["role"] == "ingress"
+
+
+def test_logical_request_rejects_deployment_role(tmp_path: Path) -> None:
+    with pytest.raises(RenderError) as exc_info:
+        render_request(write_request(tmp_path, 'flowchart LR\napi["[workload] API"]\n'))
+    assert exc_info.value.exit_code == 3
+
+
 def test_cli_returns_structured_exit_code(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     from review_brief_diagrams import cli
 
@@ -141,8 +167,8 @@ def test_cli_returns_structured_exit_code(tmp_path: Path, capsys: pytest.Capture
     payload["diagram"]["family"] = "deployment"
     request.write_text(json.dumps(payload))
 
-    assert cli.main([str(request)]) == 2
-    assert json.loads(capsys.readouterr().err)["error"]["category"] == "invalid_request"
+    assert cli.main([str(request)]) == 3
+    assert json.loads(capsys.readouterr().err)["error"]["category"] == "semantic_validation"
 
 
 def test_relative_paths_resolve_from_request_directory(tmp_path: Path) -> None:
@@ -164,8 +190,8 @@ def test_invalid_diagram_family_fails_with_stable_exit_code(tmp_path: Path) -> N
     with pytest.raises(RenderError) as exc_info:
         render_request(request)
 
-    assert exc_info.value.exit_code == 2
-    assert exc_info.value.diagnostic["category"] == "invalid_request"
+    assert exc_info.value.exit_code == 3
+    assert exc_info.value.diagnostic["category"] == "semantic_validation"
 
 
 def test_unsupported_mermaid_syntax_fails_with_stable_exit_code(tmp_path: Path) -> None:
