@@ -95,3 +95,15 @@ _Avoid_: Theme when referring to a rendering contract
 **Qualitative review**:
 Human evaluation of a rendered PNG for non-overlap, unobscured elements, visible labels, readability, aspect ratio, and color/contrast acceptability.
 _Avoid_: Pixel comparison
+
+**Integration handoff**:
+The versioned manifest and co-located artifact bundle through which the diagram generator exposes PNG output, textual description, semantic references, warnings, diagnostics, and reproducibility metadata to the Review Brief renderer.
+_Avoid_: Parser integration
+
+**Handoff contract**:
+The documented public fields, artifact-path rules, status behavior, security requirements, and version-compatibility rules that govern the integration handoff.
+_Avoid_: Internal renderer API
+
+**Degraded artifact**:
+A validated intermediate or best-effort output associated with a failed or warning status that must not be presented as a successful final diagram.
+_Avoid_: Successful diagram
