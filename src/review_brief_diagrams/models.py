@@ -31,6 +31,7 @@ class Container:
     label: str
     role: str = "boundary"
     parent_id: str | None = None
+    metadata: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -48,7 +49,7 @@ class DiagramIR:
             "family": self.family,
             "direction": self.direction,
             "containers": [
-                {"id": c.id, "label": c.label, "role": c.role, "parent_id": c.parent_id}
+                {"id": c.id, "label": c.label, "role": c.role, "parent_id": c.parent_id, "metadata": c.metadata}
                 for c in self.containers
             ],
             "nodes": [

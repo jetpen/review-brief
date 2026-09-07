@@ -100,4 +100,4 @@ A request may select a named versioned style profile through `rendering.style_pr
 
 ## Repository status
 
-The repository contains the initial implementation tracer bullet for the bottom-up Mermaid-to-PNG generator. Subsequent family support, style profiles, handoff validation, and packaging improvements are tracked in GitHub issues.
+The repository contains the initial Mermaid-to-PNG generator implementation with logical and deployment architecture flowchart support. Interaction-family support, handoff validation, and packaging improvements are tracked in GitHub issues.
