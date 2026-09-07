@@ -100,4 +100,6 @@ A request may select a named versioned style profile through `rendering.style_pr
 
 ## Repository status
 
-The repository contains the initial Mermaid-to-PNG generator implementation with logical and deployment architecture flowchart support. Interaction-family support, handoff validation, and packaging improvements are tracked in GitHub issues.
+The repository contains the Mermaid-to-PNG generator implementation with logical, deployment, and interaction diagram support. Manifest-authoritative handoff validation and packaging improvements are tracked in GitHub issues.
+
+A downstream consumer can validate a generated bundle with `review_brief_diagrams.handoff.validate_handoff("path/to/manifest.json")`. The validator confines artifact paths to the bundle, checks supported contract versions, exposes PNG and semantic metadata for Review Brief, and rejects unsafe SVG content.
