@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 
@@ -55,5 +56,5 @@ class DiagramIR:
 
 @dataclass(frozen=True)
 class ArtifactBundle:
-    path: Any
-    artifacts: tuple[Any, ...] = field(default_factory=tuple)
+    path: Path
+    artifacts: tuple[Path, ...] = field(default_factory=tuple)
