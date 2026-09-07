@@ -41,13 +41,25 @@ Create a JSON request. Relative paths resolve from the request file's directory:
 }
 ```
 
-Run the CLI:
+Run the CLI in JSON-request mode:
 
 ```bash
-diagram-render request.json
+diagram-render --request request.json
 ```
 
-The request requires `source.path`, `diagram.family`, and `output.bundle_dir`. `contract_version` is optional and defaults to the latest supported version. Use an inline `rendering.style_profile` object for constrained style overrides. Existing artifact bundles are not overwritten.
+The JSON file must be passed through the explicit `--request` qualifier; unqualified positional paths are rejected.
+
+For human-oriented interactive use, pass request properties directly:
+
+```bash
+diagram-render \
+  --source architecture.mmd \
+  --family logical \
+  --output artifacts/architecture \
+  --style-profile review-brief-default
+```
+
+Direct mode supports `logical`, `deployment`, and `interaction` families. `--contract-version` is optional and defaults to the latest supported contract version. The JSON-request and direct modes are mutually exclusive; direct parameters do not override JSON properties. Existing artifact bundles are not overwritten.
 
 ## Artifact bundle
 

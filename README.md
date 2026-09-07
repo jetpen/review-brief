@@ -91,8 +91,16 @@ python -m pip install -e .
 Create a request containing `source.path`, `diagram.family: "logical"`, and `output.bundle_dir`, then run:
 
 ```bash
-diagram-render request.json
+diagram-render --request request.json
 ```
+
+For interactive use, equivalent request properties can be supplied directly:
+
+```bash
+diagram-render --source architecture.mmd --family logical --output artifacts/architecture
+```
+
+The `--request` qualifier is mandatory for JSON mode; positional request paths are rejected. `--contract-version` is optional and defaults to the latest supported version.
 
 A successful artifact bundle contains `source.mmd`, `ir.json`, `diagram.dot`, `diagram.svg`, `diagram.png`, and `manifest.json`. Relative paths in the request resolve from the request file's directory. Existing bundles are not overwritten. Invalid requests, unsupported Mermaid syntax, and invalid style profiles return structured JSON diagnostics on stderr and stable nonzero exit codes.
 
