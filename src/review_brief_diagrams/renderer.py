@@ -6,6 +6,8 @@ import re
 import shutil
 import subprocess
 import tempfile
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -18,10 +20,48 @@ EXIT_GRAPHVIZ = 4
 EXIT_FILESYSTEM = 5
 EXIT_INTERNAL = 6
 FLOWCHART_RE = re.compile(r"^\s*flowchart(?:\s+(?P<direction>TB|TD|BT|RL|LR))?\s*$")
-NODE_RE = re.compile(r"^\s*(?P<id>[A-Za-z_][\w-]*)(?P<shape>\(\(|\(\)|\[\(|\[\]|\[|\]|\{\}|\(|\))?(?:\"(?P<quoted>.*?)\"|(?P<label>[^\[\(\{\)\}\|<>-]+?))(?P<close>\]\)|\)|\]|\}\}|\})?\s*$")
-EDGE_RE = re.compile(
-    r"^\s*(?P<source>[^|\s]+)\s*(?P<operator>-->|---|-.->|==>|-\.-)\s*(?:\|(?P<label>.*?)\|\s*)?(?P<target>[^|\s]+)\s*$"
-)
+EDGE_OPERATOR_RE = re.compile(r"(-->|---|-.->|==>|-\\.-)")
+ROLE_RE = re.compile(r"^\[(?P<role>[a-z_]+)\]\s*(?P<label>.*)$")
+LOGICAL_ROLES = {"system", "component", "service", "interface", "data_store", "external_actor", "external_system", "library", "boundary"}
+
+
+def _split_edge(line: str) -> tuple[str, str, str | None, str] | None:
+    quote = False
+    depth = 0
+    index = 0
+    while index < len(line):
+        char = line[index]
+        if char == '"':
+            quote = not quote
+        elif not quote and char in "[({":
+            depth += 1
+        elif not quote and char in "]) }".replace(" ", ""):
+            depth = max(0, depth - 1)
+        elif not quote and depth == 0:
+            match = EDGE_OPERATOR_RE.match(line, index)
+            if match:
+                left = line[:index].strip()
+                right = line[match.end():].strip()
+                label = None
+                if right.startswith("|"):
+                    end = right.find("|", 1)
+                    if end < 0:
+                        return None
+                    label = right[1:end]
+                    right = right[end + 1:].strip()
+                return left, match.group(1), label, right
+        index += 1
+    return None
+
+
+def _split_role(label: str) -> tuple[str, str | None]:
+    match = ROLE_RE.match(label.strip())
+    if not match:
+        return label.strip(), None
+    role = match.group("role")
+    if role not in LOGICAL_ROLES:
+        return label.strip(), None
+    return match.group("label").strip() or role, role
 ENDPOINT_RE = re.compile(r"^(?P<id>[A-Za-z_][\w-]*)(?P<body>.*)$")
 
 
@@ -34,11 +74,11 @@ def _parse_endpoint(token: str) -> tuple[str, str, str]:
     if not body:
         return node_id, node_id, "["
     pairs = {
+        "[(": ("[(", ")]", "cylinder"),
+        "((": ("((", "))", "circle"),
         "[": ("[", "]", "box"),
         "(": ("(", ")", "ellipse"),
-        "((": ("((", "))", "circle"),
         "{": ("{", "}", "diamond"),
-        "[(": ("[(", ")]", "cylinder"),
     }
     for opening, (prefix, suffix, shape) in pairs.items():
         if body.startswith(prefix) and body.endswith(suffix):
@@ -50,7 +90,7 @@ def _parse_endpoint(token: str) -> tuple[str, str, str]:
 
 
 def _shape_name(shape: str) -> str:
-    return {"[(": "cylinder", "[": "box", "(": "ellipse", "{": "diamond", "((": "circle"}.get(shape, "box")
+    return {"cylinder": "cylinder", "box": "box", "ellipse": "ellipse", "diamond": "diamond", "circle": "circle", "[(": "cylinder", "[": "box", "(": "ellipse", "{": "diamond", "((": "circle"}.get(shape, "box")
 
 
 class RenderError(Exception):
@@ -147,19 +187,21 @@ def parse_logical_flowchart(source: str) -> DiagramIR:
     nodes: dict[str, Node] = {}
     edges: list[Edge] = []
     for line_number, line in enumerate(lines[1:], start=2):
-        edge_match = EDGE_RE.match(line)
-        if edge_match:
-            source_id, source_label, source_shape = _parse_endpoint(edge_match.group("source"))
-            target_id, target_label, target_shape = _parse_endpoint(edge_match.group("target"))
-            nodes.setdefault(source_id, Node(source_id, source_label, _shape_name(source_shape)))
-            nodes.setdefault(target_id, Node(target_id, target_label, _shape_name(target_shape)))
-            operator = edge_match.group("operator")
+        edge_parts = _split_edge(line)
+        if edge_parts:
+            source_token, operator, edge_label, target_token = edge_parts
+            source_id, source_label, source_shape = _parse_endpoint(source_token)
+            target_id, target_label, target_shape = _parse_endpoint(target_token)
+            source_label, source_role = _split_role(source_label)
+            target_label, target_role = _split_role(target_label)
+            nodes.setdefault(source_id, Node(source_id, source_label, _shape_name(source_shape), source_role))
+            nodes.setdefault(target_id, Node(target_id, target_label, _shape_name(target_shape), target_role))
             edges.append(
                 Edge(
                     id=f"edge-{len(edges) + 1}",
                     source=source_id,
                     target=target_id,
-                    label=edge_match.group("label"),
+                    label=edge_label,
                     directed=operator != "---",
                     style="dashed" if "-." in operator else "solid",
                 )
@@ -169,12 +211,14 @@ def parse_logical_flowchart(source: str) -> DiagramIR:
             node_id, label, shape = _parse_endpoint(line.strip())
         except RenderError:
             raise RenderError(f"unsupported Mermaid syntax on line {line_number}", EXIT_INVALID, "unsupported_syntax", "parse")
+        label, role = _split_role(label)
         if node_id in nodes and nodes[node_id].label != node_id and nodes[node_id].label != label:
             raise RenderError(f"duplicate node declaration: {node_id}", EXIT_INVALID, "invalid_syntax", "parse")
-        nodes[node_id] = Node(node_id, label, _shape_name(shape))
-        continue
-        raise RenderError(f"unsupported Mermaid syntax on line {line_number}", EXIT_INVALID, "unsupported_syntax", "parse")
+        nodes[node_id] = Node(node_id, label, _shape_name(shape), role)
+    if not nodes:
+        raise RenderError("flowchart contains no nodes", EXIT_TRANSFORM, "semantic_validation", "validate")
     return DiagramIR("logical", direction, tuple(nodes.values()), tuple(edges))
+
 
 def to_dot(ir: DiagramIR) -> str:
     direction = {"TB": "TB", "TD": "TB", "BT": "BT", "RL": "RL", "LR": "LR"}[ir.direction]
@@ -182,11 +226,16 @@ def to_dot(ir: DiagramIR) -> str:
         "digraph review_brief {",
         f'  rankdir="{direction}";',
         '  graph [bgcolor="#ffffff", pad="0.35", nodesep="0.55", ranksep="0.8", splines="polyline", outputorder="edgesfirst"];',
-        '  node [fontname="DejaVu Sans", fontsize=11, shape=box, style="rounded,filled", color="#334155", fontcolor="#0f172a", fillcolor="#dbeafe", margin="0.16,0.10"];',
+        '  node [fontname="DejaVu Sans", fontsize=11, style="rounded,filled", color="#334155", fontcolor="#0f172a", fillcolor="#dbeafe", margin="0.16,0.10"];',
         '  edge [fontname="DejaVu Sans", fontsize=10, color="#475569", fontcolor="#0f172a", penwidth=1.4, arrowsize=0.8];',
     ]
+    dot_shapes = {"box": "box", "ellipse": "ellipse", "circle": "circle", "diamond": "diamond", "cylinder": "cylinder"}
     for node in ir.nodes:
-        lines.append(f'  "{_dot_escape(node.id)}" [label="{_dot_escape(node.label)}"];')
+        shape = dot_shapes.get(node.shape, "box")
+        attrs = [f'label="{_dot_escape(node.label)}"', f'shape="{shape}"']
+        if node.role:
+            attrs.append(f'comment="role:{_dot_escape(node.role)}"')
+        lines.append(f'  "{_dot_escape(node.id)}" [{", ".join(attrs)}];')
     for edge in ir.edges:
         arrow = "->" if edge.directed else "--"
         attrs = []
@@ -225,15 +274,31 @@ def _make_manifest(temp_path: Path, ir: DiagramIR, source_bytes: bytes, family: 
                 "sha256": _sha256(path),
             }
         )
+    aspect_ratio = width / height if height else None
     return {
-        "contract": {"version": CONTRACT_VERSION},
-        "generator": {"name": "review-brief-diagrams", "version": "0.1.0"},
+        "contract": {"version": CONTRACT_VERSION, "mermaid_subset_version": "1", "ir_schema_version": ir.schema_version},
+        "generator": {
+            "name": "review-brief-diagrams",
+            "version": "0.1.0",
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "run_id": str(uuid.uuid4()),
+        },
         "input": {"source_sha256": hashlib.sha256(source_bytes).hexdigest()},
-        "diagram": {"family": family, "direction": ir.direction},
-        "configuration": {"style_profile": {"name": "review-brief-default", "version": "1"}},
-        "tools": {"graphviz": _graphviz_version()},
+        "diagram": {
+            "family": family,
+            "direction": ir.direction,
+            "textual_description": f"Logical architecture flowchart containing {len(ir.nodes)} nodes and {len(ir.edges)} relationships.",
+            "semantic_metadata": {"node_ids": [node.id for node in ir.nodes], "edge_ids": [edge.id for edge in ir.edges]},
+        },
+        "configuration": {
+            "style_profile": {"name": "review-brief-default", "version": "1"},
+            "background": "#ffffff",
+            "font_family": "DejaVu Sans",
+            "dimensions": {"width": width, "height": height, "aspect_ratio": aspect_ratio},
+        },
+        "tools": {"graphviz": _graphviz_version(), "svg_to_png": {"name": "graphviz", "version": _graphviz_version()}},
         "artifacts": artifacts,
-        "image": {"path": "diagram.png", "media_type": "image/png", "width": width, "height": height},
+        "image": {"path": "diagram.png", "media_type": "image/png", "width": width, "height": height, "aspect_ratio": aspect_ratio},
         "diagnostics": [],
         "status": "succeeded",
     }

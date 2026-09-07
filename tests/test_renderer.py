@@ -47,6 +47,51 @@ def test_logical_flowchart_creates_complete_bundle(tmp_path: Path) -> None:
     assert all(item["sha256"] for item in manifest["artifacts"])
 
 
+def test_manifest_records_reproducibility_metadata(tmp_path: Path) -> None:
+    bundle = render_request(write_request(tmp_path, VALID_MERMAID))
+    manifest = json.loads((bundle.path / "manifest.json").read_text())
+
+    assert manifest["contract"]["mermaid_subset_version"] == "1"
+    assert manifest["contract"]["ir_schema_version"] == "1"
+    assert manifest["generator"]["generated_at"].endswith("+00:00")
+    assert manifest["generator"]["run_id"]
+    assert manifest["diagram"]["semantic_metadata"]["node_ids"] == ["api", "db"]
+    assert manifest["image"]["aspect_ratio"] > 0
+
+
+def test_logical_roles_and_shapes_survive_dot_generation() -> None:
+    from review_brief_diagrams.renderer import parse_logical_flowchart, to_dot
+
+    ir = parse_logical_flowchart('flowchart LR\napi["[service] API"] --> db[("[data_store] Database")]\n')
+    dot = to_dot(ir)
+
+    assert 'shape="cylinder"' in dot
+    assert 'comment="role:data_store"' in dot
+    assert 'comment="role:service"' in dot
+
+
+def test_empty_flowchart_is_semantic_failure() -> None:
+    from review_brief_diagrams.renderer import RenderError, parse_logical_flowchart
+
+    with pytest.raises(RenderError) as exc_info:
+        parse_logical_flowchart("flowchart LR\n")
+
+    assert exc_info.value.exit_code == 3
+    assert exc_info.value.diagnostic["category"] == "semantic_validation"
+
+
+def test_cli_returns_structured_exit_code(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    from review_brief_diagrams import cli
+
+    request = write_request(tmp_path, VALID_MERMAID)
+    payload = json.loads(request.read_text())
+    payload["diagram"]["family"] = "deployment"
+    request.write_text(json.dumps(payload))
+
+    assert cli.main([str(request)]) == 2
+    assert json.loads(capsys.readouterr().err)["error"]["category"] == "invalid_request"
+
+
 def test_relative_paths_resolve_from_request_directory(tmp_path: Path) -> None:
     nested = tmp_path / "nested"
     nested.mkdir()
