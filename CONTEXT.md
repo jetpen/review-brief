@@ -67,3 +67,23 @@ _Avoid_: Failed rendering when a valid artifact is produced
 **Refinement loop**:
 An iterative cycle in which human feedback or agent-assisted changes to retained intermediates trigger re-rendering until the output is acceptable.
 _Avoid_: Approval workflow
+
+**Deployment architecture**:
+A placement and isolation view of deployments, tenants, compartments, network zones, trust zones, workloads, endpoints, and network flows.
+_Avoid_: Logical architecture, runtime sequence
+
+**Deployment container**:
+A deployment-family container role representing placement or isolation, such as `tenant`, `network_zone`, `trust_zone`, `cluster`, or `namespace`.
+_Avoid_: Logical boundary
+
+**Network flow**:
+A directed deployment-family relationship carrying traffic or operational interaction between deployment objects, with optional protocol, port, and boundary-crossing metadata.
+_Avoid_: Logical dependency
+
+**Style profile**:
+A named, versioned collection of typography, color, contrast, line-width, layout, and related rendering parameters.
+_Avoid_: Theme when referring to a rendering contract
+
+**Qualitative review**:
+Human evaluation of a rendered PNG for non-overlap, unobscured elements, visible labels, readability, aspect ratio, and color/contrast acceptability.
+_Avoid_: Pixel comparison
