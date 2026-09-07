@@ -73,6 +73,29 @@ The first implementation will define:
 - [Review Brief information architecture](docs/specs/review-brief-information-architecture.md)
 - [Review Brief interaction and accessibility](docs/specs/review-brief-interaction-accessibility.md)
 
+## Minimal diagram renderer
+
+The first implementation tracer bullet is available as the `diagram-render` CLI. It accepts a JSON render request and currently supports minimal logical-architecture `flowchart` input through Graphviz `dot`.
+
+Requirements:
+
+- Python 3.11 or newer
+- Graphviz `dot` available on `PATH`
+
+Install the package in an isolated environment:
+
+```bash
+python -m pip install -e .
+```
+
+Create a request containing `source.path`, `diagram.family: "logical"`, and `output.bundle_dir`, then run:
+
+```bash
+diagram-render request.json
+```
+
+A successful artifact bundle contains `source.mmd`, `ir.json`, `diagram.dot`, `diagram.svg`, `diagram.png`, and `manifest.json`. Relative paths in the request resolve from the request file's directory. Existing bundles are not overwritten. Invalid requests and unsupported Mermaid syntax return structured JSON diagnostics on stderr and stable nonzero exit codes.
+
 ## Repository status
 
-This repository is in the design/specification phase. Implementation details and generation instructions are tracked in GitHub issues and will be added as the design route is resolved.
+The repository contains the initial implementation tracer bullet for the bottom-up Mermaid-to-PNG generator. Subsequent family support, style profiles, handoff validation, and packaging improvements are tracked in GitHub issues.

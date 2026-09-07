@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "review-brief-diagrams"
+version = "0.1.0"
+description = "Minimal Mermaid to Graphviz diagram renderer for Review Brief"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+diagram-render = "review_brief_diagrams.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
