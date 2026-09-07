@@ -197,6 +197,10 @@ def _validate_logical_family(ir: DiagramIR) -> None:
             raise RenderError(f"unresolved relationship endpoint: {edge.id}", EXIT_TRANSFORM, "semantic_validation", "validate")
         if edge.role in NETWORK_RELATIONSHIP_ROLES:
             raise RenderError(f"deployment relationship is not valid in logical architecture: {edge.role}", EXIT_TRANSFORM, "semantic_validation", "validate")
+        if edge.role == "relates_to" and edge.label is None:
+            continue
+        if edge.role not in RELATIONSHIP_ROLES | {"relates_to"}:
+            raise RenderError(f"unsupported relationship role: {edge.role}", EXIT_TRANSFORM, "semantic_validation", "validate")
 
 
 def parse_flowchart(source: str, family: str) -> DiagramIR:
@@ -275,8 +279,6 @@ def parse_logical_flowchart(source: str) -> DiagramIR:
 
 def parse_deployment_flowchart(source: str) -> DiagramIR:
     return parse_flowchart(source, "deployment")
-
-
 
 
 def _validate_style(style: StyleProfile) -> None:
