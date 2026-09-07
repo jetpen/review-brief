@@ -1,2 +1,0 @@
-[console_scripts]
-diagram-render = review_brief_diagrams.cli:main
