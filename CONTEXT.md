@@ -52,14 +52,6 @@ _Avoid_: Deployment architecture, sequence diagram
 A controlled semantic meaning assigned to a logical-architecture edge, such as `calls`, `depends_on`, `implements`, `exposes`, `reads`, or `writes`.
 _Avoid_: Edge meaning
 
-**Style profile**:
-A named, versioned collection of typography, color, contrast, line-width, layout, and related rendering parameters.
-_Avoid_: Theme when referring to a rendering contract
-
-**Qualitative review**:
-Human evaluation of a rendered PNG for non-overlap, unobscured elements, visible labels, readability, aspect ratio, and color/contrast acceptability.
-_Avoid_: Pixel comparison
-
 **Best-effort rendering**:
 Rendering that produces the most acceptable valid artifact possible for an oversized or difficult diagram while recording limitations or warnings.
 _Avoid_: Failed rendering when a valid artifact is produced
@@ -71,6 +63,22 @@ _Avoid_: Approval workflow
 **Deployment architecture**:
 A placement and isolation view of deployments, tenants, compartments, network zones, trust zones, workloads, endpoints, and network flows.
 _Avoid_: Logical architecture, runtime sequence
+
+**Interaction architecture**:
+A use-case view of participants and their ordered messages, message kinds, and activation spans without deployment placement or static logical structure.
+_Avoid_: Logical architecture, deployment architecture
+
+**Participant role**:
+A controlled semantic meaning assigned to an interaction participant, such as `actor`, `service`, `database`, `gateway`, or `identity_provider`.
+_Avoid_: Actor when referring to every participant
+
+**Message kind**:
+A controlled semantic classification of an interaction message, such as synchronous request, asynchronous message, response, callback/event, or error response.
+_Avoid_: Edge role
+
+**Activation span**:
+A participant interval bounded by activation and deactivation message indexes in an interaction diagram.
+_Avoid_: Lifetime
 
 **Deployment container**:
 A deployment-family container role representing placement or isolation, such as `tenant`, `network_zone`, `trust_zone`, `cluster`, or `namespace`.
