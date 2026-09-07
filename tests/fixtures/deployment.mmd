@@ -1,0 +1,4 @@
+flowchart TB
+subgraph prod["[deployment] Production"]
+  api["[workload] API"] -->|[network_flow][HTTPS:443][ingress]| db["[database] Database"]
+end

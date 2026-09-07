@@ -1,0 +1,7 @@
+sequenceDiagram
+actor User
+participant API as "[service] API"
+participant DB as "[database] Database"
+User->>API: [request] Submit
+API-->>User: [response] Accepted
+API-)DB: [event] Stored
