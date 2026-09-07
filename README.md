@@ -75,7 +75,7 @@ The first implementation will define:
 
 ## Minimal diagram renderer
 
-The first implementation tracer bullet is available as the `diagram-render` CLI. It accepts a JSON render request and supports logical-architecture `flowchart` input through Graphviz `dot`, including semantic roles, relationship roles, and nested boundaries.
+The first implementation tracer bullet is available as the `diagram-render` CLI. It accepts a JSON render request and supports logical-architecture and deployment `flowchart` input plus constrained `sequenceDiagram` interaction input through Graphviz `dot`, including semantic roles, relationship roles, nested boundaries, and ordered messages.
 
 Requirements:
 

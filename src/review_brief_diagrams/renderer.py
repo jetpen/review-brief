@@ -197,6 +197,10 @@ def _validate_logical_family(ir: DiagramIR) -> None:
             raise RenderError(f"unresolved relationship endpoint: {edge.id}", EXIT_TRANSFORM, "semantic_validation", "validate")
         if edge.role in NETWORK_RELATIONSHIP_ROLES:
             raise RenderError(f"deployment relationship is not valid in logical architecture: {edge.role}", EXIT_TRANSFORM, "semantic_validation", "validate")
+        if edge.role == "relates_to" and edge.label is None:
+            continue
+        if edge.role not in RELATIONSHIP_ROLES | {"relates_to"}:
+            raise RenderError(f"unsupported relationship role: {edge.role}", EXIT_TRANSFORM, "semantic_validation", "validate")
 
 
 def parse_flowchart(source: str, family: str) -> DiagramIR:
@@ -264,7 +268,7 @@ def parse_flowchart(source: str, family: str) -> DiagramIR:
     ir = DiagramIR(family, direction, tuple(nodes.values()), tuple(edges), tuple(containers))
     if family == "logical":
         _validate_logical_family(ir)
-    else:
+    elif family == "deployment":
         _validate_deployment_family(ir)
     return ir
 
@@ -273,10 +277,80 @@ def parse_logical_flowchart(source: str) -> DiagramIR:
     return parse_flowchart(source, "logical")
 
 
+SEQUENCE_RE = re.compile(r"^\s*sequenceDiagram\s*$")
+PARTICIPANT_RE = re.compile(r"^\s*(?:participant|actor)\s+(?P<id>[A-Za-z_][\w-]*)(?:\s+as\s+(?P<label>.+))?\s*$")
+MESSAGE_RE = re.compile(r"^\s*(?P<source>[A-Za-z_][\w-]*?)(?P<arrow>-->>|->>|--x|->|-\))\s*(?P<target>[A-Za-z_][\w-]*)\s*:\s*(?P<label>.*)$")
+ACTIVATE_RE = re.compile(r"^\s*activate\s+(?P<id>[A-Za-z_][\w-]*)\s*$")
+DEACTIVATE_RE = re.compile(r"^\s*deactivate\s+(?P<id>[A-Za-z_][\w-]*)\s*$")
+
+
+def _sequence_participant_role(label: str, kind: str) -> tuple[str, str]:
+    clean, role = _split_role(label)
+    return clean, role or ("actor" if kind == "actor" else "component")
+
+
+def _sequence_message_kind(arrow: str, label: str) -> tuple[str | None, str, dict[str, str]]:
+    match = ROLE_EDGE_RE.match(label.strip())
+    if match and match.group("role") in {"request", "response", "event", "error", "callback"}:
+        return match.group("label").strip() or None, match.group("role"), {}
+    if arrow == "-)":
+        return label.strip() or None, "callback_event", {}
+    if arrow.startswith("--"):
+        return label.strip() or None, "response", {}
+    if "-" in arrow and ">" in arrow:
+        return label.strip() or None, "asynchronous_message", {}
+    return label.strip() or None, "synchronous_request", {}
+
+
+def parse_sequence_diagram(source: str) -> DiagramIR:
+    lines = [line for line in source.splitlines() if line.strip() and not line.lstrip().startswith("%%")]
+    if not lines or not SEQUENCE_RE.match(lines[0]):
+        raise RenderError("expected a sequenceDiagram declaration", EXIT_INVALID, "unsupported_syntax", "parse")
+    participants: dict[str, Node] = {}
+    messages: list[Edge] = []
+    activations: dict[str, int] = {}
+    for line_number, line in enumerate(lines[1:], start=2):
+        participant = PARTICIPANT_RE.match(line)
+        if participant:
+            participant_id = participant.group("id")
+            kind = "actor" if line.strip().startswith("actor ") else "participant"
+            label, role = _sequence_participant_role(participant.group("label") or participant_id, kind)
+            participants[participant_id] = Node(participant_id, label, _shape_for(role, "box"), role)
+            continue
+        activate = ACTIVATE_RE.match(line)
+        if activate:
+            participant_id = activate.group("id")
+            if participant_id not in participants or participant_id in activations:
+                raise RenderError(f"invalid activation participant on line {line_number}", EXIT_INVALID, "invalid_syntax", "parse")
+            activations[participant_id] = len(messages) + 1
+            continue
+        deactivate = DEACTIVATE_RE.match(line)
+        if deactivate:
+            participant_id = deactivate.group("id")
+            if participant_id not in activations:
+                raise RenderError(f"unbalanced deactivation on line {line_number}", EXIT_INVALID, "invalid_syntax", "parse")
+            del activations[participant_id]
+            continue
+        message = MESSAGE_RE.match(line)
+        if message:
+            source_id, target_id = message.group("source"), message.group("target")
+            if source_id not in participants or target_id not in participants:
+                raise RenderError(f"unresolved participant on line {line_number}", EXIT_TRANSFORM, "semantic_validation", "validate")
+            label, role, metadata = _sequence_message_kind(message.group("arrow"), message.group("label"))
+            messages.append(Edge(f"message-{len(messages) + 1}", source_id, target_id, label, role, True, "dashed" if role in {"response", "asynchronous_message"} else "solid", len(messages) + 1, metadata))
+            continue
+        if line.strip().startswith(("loop", "alt", "par", "critical", "break", "Note", "note")):
+            raise RenderError(f"unsupported sequence construct on line {line_number}", EXIT_INVALID, "unsupported_syntax", "parse")
+        raise RenderError(f"unsupported sequence syntax on line {line_number}", EXIT_INVALID, "unsupported_syntax", "parse")
+    if activations:
+        raise RenderError("unbalanced activation spans", EXIT_INVALID, "invalid_syntax", "validate")
+    if not participants or not messages:
+        raise RenderError("sequence diagram requires participants and messages", EXIT_TRANSFORM, "semantic_validation", "validate")
+    return DiagramIR("interaction", "LR", tuple(participants.values()), tuple(messages))
+
+
 def parse_deployment_flowchart(source: str) -> DiagramIR:
     return parse_flowchart(source, "deployment")
-
-
 
 
 def _validate_style(style: StyleProfile) -> None:
@@ -299,7 +373,7 @@ def render_request(request_path: str | Path) -> ArtifactBundle:
         raise RenderError(f"artifact bundle already exists: {bundle_path}", EXIT_FILESYSTEM, "filesystem", "request")
     try:
         source_bytes = source_path.read_bytes()
-        ir = parse_deployment_flowchart(source_bytes.decode("utf-8")) if family == "deployment" else parse_logical_flowchart(source_bytes.decode("utf-8"))
+        ir = parse_deployment_flowchart(source_bytes.decode("utf-8")) if family == "deployment" else (parse_sequence_diagram(source_bytes.decode("utf-8")) if family == "interaction" else parse_logical_flowchart(source_bytes.decode("utf-8")))
         style = resolve_style(request)
         _validate_style(style)
     except RenderError:
@@ -337,8 +411,8 @@ def _validate_request(request: Any, base_dir: Path) -> tuple[Path, Path, str]:
     source_value, bundle_value, family = source.get("path"), output.get("bundle_dir"), diagram.get("family")
     if not isinstance(source_value, str) or not isinstance(bundle_value, str):
         raise RenderError("source.path and output.bundle_dir must be strings", EXIT_INVALID, "invalid_request", "request")
-    if family not in {"logical", "deployment"}:
-        raise RenderError("supported families are logical and deployment", EXIT_INVALID, "invalid_request", "request")
+    if family not in {"logical", "deployment", "interaction"}:
+        raise RenderError("supported families are logical, deployment, and interaction", EXIT_INVALID, "invalid_request", "request")
     source_path = Path(source_value) if Path(source_value).is_absolute() else base_dir / source_value
     bundle_path = Path(bundle_value) if Path(bundle_value).is_absolute() else base_dir / bundle_value
     if not source_path.is_file():
@@ -369,11 +443,17 @@ def to_dot(ir: DiagramIR, style: StyleProfile = DEFAULT_STYLE) -> str:
             attrs.append(f'label="{_dot_escape(edge.label)}"')
         if edge.role != "relates_to":
             attrs.append(f'comment="role:{_dot_escape(edge.role)}"')
+        if edge.sequence_index is not None:
+            attrs.append(f'xlabel="{edge.sequence_index}"')
         if edge.style != "solid":
             attrs.append(f'style="{edge.style}"')
         suffix = f" [{', '.join(attrs)}]" if attrs else ""
         arrow = "->" if edge.directed else "--"
         lines.append(f'  "{_dot_escape(edge.source)}" {arrow} "{_dot_escape(edge.target)}"{suffix};')
+    if ir.family == "interaction":
+        for first, second in zip(ir.edges, ir.edges[1:]):
+            lines.append(f'  "{_dot_escape(first.target)}" -> "{_dot_escape(second.source)}" [style=invis, weight=100];')
+        lines.append("  { rank=same; " + "; ".join(f'"{_dot_escape(node.id)}"' for node in ir.nodes) + "; }")
     lines.append("}")
     return "\n".join(lines) + "\n"
 
@@ -399,7 +479,7 @@ def _make_manifest(temp_path: Path, ir: DiagramIR, source_bytes: bytes, family: 
         "contract": {"version": CONTRACT_VERSION, "mermaid_subset_version": "1", "ir_schema_version": ir.schema_version},
         "generator": {"name": "review-brief-diagrams", "version": "0.1.0", "generated_at": datetime.now(timezone.utc).isoformat(), "run_id": str(uuid.uuid4())},
         "input": {"source_sha256": hashlib.sha256(source_bytes).hexdigest()},
-        "diagram": {"family": family, "direction": ir.direction, "textual_description": f"{family.title()} architecture flowchart containing {len(ir.nodes)} nodes, {len(ir.edges)} relationships, and {len(ir.containers)} containers.", "semantic_metadata": {"node_ids": [node.id for node in ir.nodes], "edge_ids": [edge.id for edge in ir.edges], "container_ids": [container.id for container in ir.containers], "edge_roles": {edge.id: edge.role for edge in ir.edges}}},
+        "diagram": {"family": family, "direction": ir.direction, "textual_description": f"{family.title()} diagram containing {len(ir.nodes)} participants or nodes and {len(ir.edges)} relationships.", "semantic_metadata": {"node_ids": [node.id for node in ir.nodes], "edge_ids": [edge.id for edge in ir.edges], "container_ids": [container.id for container in ir.containers], "edge_roles": {edge.id: edge.role for edge in ir.edges}, "sequence_indexes": {edge.id: edge.sequence_index for edge in ir.edges if edge.sequence_index is not None}}},
         "configuration": {"style_profile": style.as_dict(), "dimensions": {"width": width, "height": height, "aspect_ratio": aspect_ratio}},
         "tools": {"graphviz": _graphviz_version(), "svg_to_png": {"name": "graphviz", "version": _graphviz_version()}},
         "artifacts": artifacts,

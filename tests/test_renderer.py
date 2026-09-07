@@ -159,6 +159,37 @@ def test_logical_request_rejects_deployment_role(tmp_path: Path) -> None:
     assert exc_info.value.exit_code == 3
 
 
+def test_interaction_sequence_renders_ordered_messages(tmp_path: Path) -> None:
+    from review_brief_diagrams.renderer import parse_sequence_diagram, to_dot
+
+    ir = parse_sequence_diagram('''sequenceDiagram
+actor User
+participant API as "[service] API"
+participant DB as "[database] DB"
+User->>API: [request] Submit
+API-->>User: [response] Accepted
+API-)DB: [event] Stored
+''')
+    dot = to_dot(ir)
+
+    assert [edge.sequence_index for edge in ir.edges] == [1, 2, 3]
+    assert [edge.role for edge in ir.edges] == ["request", "response", "event"]
+    assert 'xlabel="1"' in dot
+    assert 'style="dashed"' in dot
+
+
+def test_interaction_activation_and_unsupported_constructs() -> None:
+    from review_brief_diagrams.renderer import RenderError, parse_sequence_diagram
+
+    with pytest.raises(RenderError) as activation_error:
+        parse_sequence_diagram('sequenceDiagram\nparticipant API\nactivate API\nAPI->>API: work\n')
+    assert activation_error.value.diagnostic["category"] == "invalid_syntax"
+
+    with pytest.raises(RenderError) as unsupported_error:
+        parse_sequence_diagram('sequenceDiagram\nparticipant API\nparticipant DB\nloop retry\nAPI->>DB: work\nend\n')
+    assert unsupported_error.value.diagnostic["category"] == "unsupported_syntax"
+
+
 def test_cli_returns_structured_exit_code(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     from review_brief_diagrams import cli
 
