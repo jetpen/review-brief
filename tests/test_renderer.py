@@ -80,6 +80,34 @@ def test_empty_flowchart_is_semantic_failure() -> None:
     assert exc_info.value.diagnostic["category"] == "semantic_validation"
 
 
+def test_roles_relationships_and_containers_render(tmp_path: Path) -> None:
+    from review_brief_diagrams.renderer import parse_logical_flowchart, to_dot
+
+    source = '''flowchart LR
+subgraph core["Core"]
+  api["[service] API"] -->|[calls]| auth["[service] Auth"]
+end
+'''
+    ir = parse_logical_flowchart(source)
+    dot = to_dot(ir)
+
+    assert ir.containers[0].id == "core"
+    assert ir.nodes[0].container_id == "core"
+    assert ir.edges[0].role == "calls"
+    assert 'cluster_core' in dot
+    assert 'comment="role:calls"' in dot
+
+
+def test_deployment_role_fails_in_logical_family() -> None:
+    from review_brief_diagrams.renderer import RenderError, parse_logical_flowchart
+
+    with pytest.raises(RenderError) as exc_info:
+        parse_logical_flowchart('flowchart LR\napi["[workload] API"]\n')
+
+    assert exc_info.value.exit_code == 3
+    assert exc_info.value.diagnostic["category"] == "semantic_validation"
+
+
 def test_cli_returns_structured_exit_code(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     from review_brief_diagrams import cli
 
