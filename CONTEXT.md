@@ -43,3 +43,67 @@ _Avoid_: Group when referring to a semantic boundary
 **Semantic role**:
 A family-specific meaning assigned during validation and normalization rather than inferred solely from Mermaid syntax or visual shape.
 _Avoid_: Shape meaning
+
+**Logical architecture**:
+A structural view of systems, components, services, interfaces, data stores, dependencies, and logical boundaries without deployment topology or runtime interaction sequencing.
+_Avoid_: Deployment architecture, sequence diagram
+
+**Relationship role**:
+A controlled semantic meaning assigned to a logical-architecture edge, such as `calls`, `depends_on`, `implements`, `exposes`, `reads`, or `writes`.
+_Avoid_: Edge meaning
+
+**Best-effort rendering**:
+Rendering that produces the most acceptable valid artifact possible for an oversized or difficult diagram while recording limitations or warnings.
+_Avoid_: Failed rendering when a valid artifact is produced
+
+**Refinement loop**:
+An iterative cycle in which human feedback or agent-assisted changes to retained intermediates trigger re-rendering until the output is acceptable.
+_Avoid_: Approval workflow
+
+**Deployment architecture**:
+A placement and isolation view of deployments, tenants, compartments, network zones, trust zones, workloads, endpoints, and network flows.
+_Avoid_: Logical architecture, runtime sequence
+
+**Interaction architecture**:
+A use-case view of participants and their ordered messages, message kinds, and activation spans without deployment placement or static logical structure.
+_Avoid_: Logical architecture, deployment architecture
+
+**Participant role**:
+A controlled semantic meaning assigned to an interaction participant, such as `actor`, `service`, `database`, `gateway`, or `identity_provider`.
+_Avoid_: Actor when referring to every participant
+
+**Message kind**:
+A controlled semantic classification of an interaction message, such as synchronous request, asynchronous message, response, callback/event, or error response.
+_Avoid_: Edge role
+
+**Activation span**:
+A participant interval bounded by activation and deactivation message indexes in an interaction diagram.
+_Avoid_: Lifetime
+
+**Deployment container**:
+A deployment-family container role representing placement or isolation, such as `tenant`, `network_zone`, `trust_zone`, `cluster`, or `namespace`.
+_Avoid_: Logical boundary
+
+**Network flow**:
+A directed deployment-family relationship carrying traffic or operational interaction between deployment objects, with optional protocol, port, and boundary-crossing metadata.
+_Avoid_: Logical dependency
+
+**Style profile**:
+A named, versioned collection of typography, color, contrast, line-width, layout, and related rendering parameters.
+_Avoid_: Theme when referring to a rendering contract
+
+**Qualitative review**:
+Human evaluation of a rendered PNG for non-overlap, unobscured elements, visible labels, readability, aspect ratio, and color/contrast acceptability.
+_Avoid_: Pixel comparison
+
+**Integration handoff**:
+The versioned manifest and co-located artifact bundle through which the diagram generator exposes PNG output, textual description, semantic references, warnings, diagnostics, and reproducibility metadata to the Review Brief renderer.
+_Avoid_: Parser integration
+
+**Handoff contract**:
+The documented public fields, artifact-path rules, status behavior, security requirements, and version-compatibility rules that govern the integration handoff.
+_Avoid_: Internal renderer API
+
+**Degraded artifact**:
+A validated intermediate or best-effort output associated with a failed or warning status that must not be presented as a successful final diagram.
+_Avoid_: Successful diagram
