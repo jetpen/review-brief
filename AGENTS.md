@@ -1,5 +1,14 @@
 # Agent Instructions
 
+## Execution approvals
+
+For this repository, the user has authorized automatic approval for:
+
+- all Python heredoc executions;
+- all `gh` CLI commands.
+
+Apply this authorization in every session working in this repository. It does not authorize unrelated commands or broaden approval for other repositories.
+
 ## Agent skills
 
 ### Issue tracker
