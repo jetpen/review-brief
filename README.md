@@ -94,7 +94,9 @@ Create a request containing `source.path`, `diagram.family: "logical"`, and `out
 diagram-render request.json
 ```
 
-A successful artifact bundle contains `source.mmd`, `ir.json`, `diagram.dot`, `diagram.svg`, `diagram.png`, and `manifest.json`. Relative paths in the request resolve from the request file's directory. Existing bundles are not overwritten. Invalid requests and unsupported Mermaid syntax return structured JSON diagnostics on stderr and stable nonzero exit codes.
+A successful artifact bundle contains `source.mmd`, `ir.json`, `diagram.dot`, `diagram.svg`, `diagram.png`, and `manifest.json`. Relative paths in the request resolve from the request file's directory. Existing bundles are not overwritten. Invalid requests, unsupported Mermaid syntax, and invalid style profiles return structured JSON diagnostics on stderr and stable nonzero exit codes.
+
+A request may select a named versioned style profile through `rendering.style_profile`. The default profile is `review-brief-default` version `1`; an inline profile object can override typography, colors, contrast, line widths, dimensions, label wrapping, and transparency. The resolved profile is recorded in the manifest and validated for readable contrast and font sizes. Corporate branding or style-guide tooling can synthesize profile objects without changing the renderer contract.
 
 ## Repository status
 
