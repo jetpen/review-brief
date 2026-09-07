@@ -190,6 +190,22 @@ def test_interaction_activation_and_unsupported_constructs() -> None:
     assert unsupported_error.value.diagnostic["category"] == "unsupported_syntax"
 
 
+def test_cli_direct_mode_renders_without_json_request(tmp_path: Path) -> None:
+    from review_brief_diagrams import cli
+
+    source = tmp_path / "direct.mmd"
+    source.write_text(VALID_MERMAID)
+    assert cli.main(["--source", str(source), "--family", "logical", "--output", str(tmp_path / "bundle")]) == 0
+    assert (tmp_path / "bundle" / "diagram.png").is_file()
+
+
+def test_cli_requires_named_request_qualifier(tmp_path: Path) -> None:
+    from review_brief_diagrams import cli
+
+    with pytest.raises(SystemExit):
+        cli.main([str(tmp_path / "request.json")])
+
+
 def test_cli_returns_structured_exit_code(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     from review_brief_diagrams import cli
 
@@ -198,7 +214,7 @@ def test_cli_returns_structured_exit_code(tmp_path: Path, capsys: pytest.Capture
     payload["diagram"]["family"] = "deployment"
     request.write_text(json.dumps(payload))
 
-    assert cli.main([str(request)]) == 3
+    assert cli.main(["--request", str(request)]) == 3
     assert json.loads(capsys.readouterr().err)["error"]["category"] == "semantic_validation"
 
 
