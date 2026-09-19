@@ -93,6 +93,10 @@ The downstream Review Brief consumer should use `manifest.json` as the authorita
 
 The renderer does not own Review Brief HTML layout, navigation, claims, explanations, risks, uncertainties, approval handling, or repository-to-Mermaid distillation.
 
+## Architecture explanation scope
+
+An architecture explanation should cover three complementary views: public interfaces and surfaces, the logical architecture of coarse-grained subsystems and seams, and interaction flows for the most important use cases. By default, include no more than the top five request flows; expand that set only when explicitly requested or when a material surface, seam, or behavior would otherwise remain unexplained. See the [architecture diagram scope](../specs/architecture-diagram-scope.md) specification for selection and completeness rules.
+
 ## Verification
 
 From the repository root:

@@ -100,6 +100,18 @@ _Avoid_: Pixel comparison
 The versioned manifest and co-located artifact bundle through which the diagram generator exposes PNG output, textual description, semantic references, warnings, diagnostics, and reproducibility metadata to the Review Brief renderer.
 _Avoid_: Parser integration
 
+**Public surface**:
+An externally visible interface through which an end user, client, operator, or external system interacts with the application, including the capabilities and outputs exposed at that interface.
+_Avoid_: Internal call when describing an externally visible entry point
+
+**Subsystem**:
+A coarse-grained logical part of the application with a responsibility and an interface at one or more seams; it is a view-level grouping, not a deployment unit.
+_Avoid_: Component when referring to a logical architecture grouping
+
+**Request flow**:
+The ordered interaction path from an actor or public surface through relevant subsystems to a response, event, or other outcome for one use case.
+_Avoid_: Complete trace when only the review-relevant path is shown
+
 **Handoff contract**:
 The documented public fields, artifact-path rules, status behavior, security requirements, and version-compatibility rules that govern the integration handoff.
 _Avoid_: Internal renderer API
