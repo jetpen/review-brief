@@ -4,15 +4,16 @@ Status: accepted design specification
 
 ## Purpose
 
-An architecture explanation in a Review Brief must show enough of the system for a reader to understand who uses it, how its major parts fit together, and how important work moves through those parts. A single diagram is not assumed to provide all three kinds of understanding.
+An architecture explanation in a Review Brief must show enough of the system for a reader to understand who uses it, how its major parts fit together, how important work moves through those parts, and where those parts are placed and isolated. A single diagram is not assumed to provide all four kinds of understanding.
 
-The architecture-diagram set therefore covers three complementary views:
+The architecture-diagram set therefore covers four complementary required views:
 
 1. **Public interfaces and surfaces** — the interfaces through which an end user, client, operator, or external system interacts with the application.
 2. **Logical architecture** — the coarse-grained subsystems, their responsibilities, dependencies, and seams.
 3. **Request flows** — the ordered path through those subsystems for the most important use cases, including the response or outcome.
+4. **Deployment architecture** — the placement and isolation of deployment containers, workloads, endpoints, and network flows.
 
-These views are a coverage requirement, not a requirement to produce three images. A view may be omitted only when it is genuinely inapplicable, and that omission must be stated in the brief.
+These views are a coverage requirement, not a requirement to produce four images. A view may be omitted only when it is genuinely inapplicable, and that omission must be stated in the brief.
 
 ## View requirements
 
@@ -38,7 +39,19 @@ This view shows the application as coarse-grained subsystems. Each subsystem sho
 - durable data stores or external systems when they affect ownership or flow;
 - dependency direction and relationships that matter to the explanation.
 
-The view is logical, not deployment topology. Hosts, regions, containers, network zones, and replicas belong in a deployment view only when deployment is itself relevant to the review objective.
+The view is logical, not deployment topology. Hosts, regions, containers, network zones, and replicas belong in the deployment view rather than the logical view.
+
+### Deployment architecture
+
+This view shows where the application’s logical parts are placed and isolated. It should show, as applicable:
+
+- deployment containers such as tenants, compartments, network zones, trust zones, clusters, or namespaces;
+- workloads, endpoints, gateways, stores, and external systems within those containers;
+- network flows between deployment objects;
+- relevant protocols, ports, directions, and boundary crossings;
+- replication or isolation relationships that materially affect the review objective.
+
+Deployment objects and flows should retain stable names or references that allow them to be related to the logical architecture without conflating deployment units with logical subsystems.
 
 ### Request flows
 
@@ -88,9 +101,9 @@ Each material diagram must retain references to the reviewed source, claims, or 
 | Public interfaces and surfaces | logical | Who interacts with the application, and through what? |
 | Coarse-grained subsystems and seams | logical | What are the major parts, responsibilities, and interfaces? |
 | Request flows for selected use cases | interaction | How does important work move through the parts and produce an outcome? |
-| Deployment topology, when relevant | deployment | Where are the parts placed and isolated? |
+| Deployment topology | deployment | Where are the parts placed and isolated? |
 
-Deployment architecture is supplementary. It does not replace the required public-surface, logical, or request-flow views.
+Deployment architecture is the fourth complementary required view. It does not replace the public-surface, logical, or request-flow views.
 
 ## Completeness check
 
@@ -98,6 +111,7 @@ Before considering an architecture explanation complete, verify that:
 
 - every material public interface or surface has a visible owner or destination;
 - every coarse-grained subsystem has a responsibility and relevant seam;
+- the deployment view identifies applicable placement or isolation boundaries, deployment objects, and material network flows;
 - each selected request flow starts at a public interface or actor and ends at a response or outcome;
 - the selected flows cover the most important use cases and do not exceed five without an explicit reason;
 - names and references line up across all views;

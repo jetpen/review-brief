@@ -95,7 +95,7 @@ The renderer does not own Review Brief HTML layout, navigation, claims, explanat
 
 ## Architecture explanation scope
 
-An architecture explanation should cover three complementary views: public interfaces and surfaces, the logical architecture of coarse-grained subsystems and seams, and interaction flows for the most important use cases. By default, include no more than the top five request flows; expand that set only when explicitly requested or when a material surface, seam, or behavior would otherwise remain unexplained. See the [architecture diagram scope](../specs/architecture-diagram-scope.md) specification for selection and completeness rules.
+An architecture explanation should cover four complementary required views: public interfaces and surfaces, the logical architecture of coarse-grained subsystems and seams, interaction flows for the most important use cases, and deployment architecture showing placement and isolation. A view may be omitted only when it is genuinely inapplicable, and that omission must be stated in the brief. By default, include no more than the top five request flows; expand that set only when explicitly requested or when a material surface, seam, or behavior would otherwise remain unexplained. See the [architecture diagram scope](../specs/architecture-diagram-scope.md) specification for selection and completeness rules.
 
 ## Verification
 
